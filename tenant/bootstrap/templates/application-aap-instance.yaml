@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aap-instance-{{ .Values.tenant.username }}
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.bootstrap.repoURL }}
+    targetRevision: {{ .Values.bootstrap.targetRevision }}
+    path: tenant/aap-instance
+    helm:
+      values: |
+        tenant:
+          username: {{ .Values.tenant.username }}
+          password: {{ .Values.tenant.password }}
+          scenario: {{ .Values.tenant.scenario }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: aap-{{ .Values.tenant.username }}
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=false   # pre-created by ocp4_workload_tenant_namespace
+      - SkipDryRunOnMissingResource=true

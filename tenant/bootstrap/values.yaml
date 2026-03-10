@@ -1,0 +1,8 @@
+bootstrap:
+  repoURL: https://github.com/rhpds/demystifying-aap-automation
+  targetRevision: main
+tenant:
+  username: ""    # injected at provision time by ocp4_workload_gitops_bootstrap
+  password: ""
+  domain: ""
+  scenario: 3

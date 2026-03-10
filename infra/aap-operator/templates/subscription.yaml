@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ansible-automation-platform-operator-bundle
+  namespace: ansible-automation-platform
+spec:
+  channel: stable-2.5-cluster-scoped
+  name: ansible-automation-platform-operator-bundle
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

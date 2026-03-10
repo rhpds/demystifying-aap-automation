@@ -1,0 +1,4 @@
+apiVersion: v2
+name: infra-bootstrap
+description: Infra app-of-apps for Demystifying AAP
+version: 0.1.0

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: tenant-bootstrap
+description: Bootstraps per-user AAP resources
+version: 0.1.0

@@ -1,0 +1,27 @@
+apiVersion: aap.ansible.com/v1alpha1
+kind: AnsibleAutomationPlatform
+metadata:
+  name: {{ .Values.tenant.username }}-aap
+  namespace: aap-{{ .Values.tenant.username }}
+spec:
+  admin_password_secret: {{ .Values.tenant.username }}-aap-admin-password
+  controller:
+    enabled: {{ .Values.aap.controller.enabled }}
+    resource_requirements:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+  eda:
+    enabled: {{ .Values.aap.eda.enabled }}
+    resource_requirements:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  hub:
+    enabled: {{ .Values.aap.hub.enabled }}

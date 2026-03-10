@@ -1,0 +1,4 @@
+apiVersion: v2
+name: bootstrap
+description: Bootstraps Demystifying AAP cluster-level infra
+version: 0.1.0

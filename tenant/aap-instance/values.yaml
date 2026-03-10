@@ -1,0 +1,12 @@
+tenant:
+  username: ""
+  password: ""
+  scenario: 3          # which scenario to deploy (2-7)
+aap:
+  version: "2.6"
+  controller:
+    enabled: true
+  eda:
+    enabled: true
+  hub:
+    enabled: false
