@@ -2,7 +2,7 @@ apiVersion: aap.ansible.com/v1alpha1
 kind: AnsibleAutomationPlatform
 metadata:
   name: {{ .Values.tenant.username }}-aap
-  namespace: aap-{{ .Values.tenant.username }}
+  namespace: {{ .Values.tenant.username }}-aap
 spec:
   admin_password_secret: {{ .Values.tenant.username }}-aap-admin-password
   controller:

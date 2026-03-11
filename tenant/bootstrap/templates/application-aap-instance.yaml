@@ -19,7 +19,7 @@ spec:
           scenario: {{ .Values.tenant.scenario }}
   destination:
     server: https://kubernetes.default.svc
-    namespace: aap-{{ .Values.tenant.username }}
+    namespace: {{ .Values.tenant.username }}-aap
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions:
