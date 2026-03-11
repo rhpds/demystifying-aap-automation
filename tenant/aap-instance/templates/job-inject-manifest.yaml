@@ -1,0 +1,64 @@
+---
+# Injects the AAP subscription manifest after AAP Controller is ready.
+# Runs as an ArgoCD PostSync hook — deleted on success.
+# Polls Controller API every 30s until ready, then injects manifest via API.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.tenant.username }}-aap-manifest
+  namespace: {{ .Values.tenant.username }}-aap
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 20     # retry up to 20 times (~10 min polling window)
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: inject-manifest
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.username }}-aap.{{ .Values.tenant.domain }}"
+
+          echo "Waiting for AAP Controller at ${CONTROLLER_URL}..."
+          until curl -sk \
+            --max-time 10 \
+            -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/ping/" \
+            -o /dev/null -w "%{http_code}" | grep -q "200"; do
+            echo "Controller not ready, retrying in 30s..."
+            sleep 30
+          done
+
+          echo "Controller ready. Downloading manifest..."
+          curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
+
+          echo "Injecting manifest..."
+          RESULT=$(curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -F "manifest=@/tmp/manifest.zip" \
+            -o /tmp/result.json \
+            -w "%{http_code}" \
+            "${CONTROLLER_URL}/api/v2/config/")
+
+          echo "HTTP status: ${RESULT}"
+          cat /tmp/result.json
+          echo ""
+
+          if echo "${RESULT}" | grep -qE "^2"; then
+            echo "Manifest injected successfully."
+          else
+            echo "Manifest injection failed." && exit 1
+          fi
+        env:
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.tenant.username }}-aap-admin-password
+              key: password
+        - name: MANIFEST_URL
+          value: {{ .Values.aap.manifest.url | quote }}

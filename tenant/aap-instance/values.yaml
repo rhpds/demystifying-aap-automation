@@ -1,10 +1,13 @@
 tenant:
   username: ""
   password: ""
+  domain: ""           # cluster ingress domain e.g. apps.cluster.rhdp.net
   scenario: 3          # which scenario to deploy (2-7)
 aap:
   version: "2.6"
   operatorChannel: stable-2.6
+  manifest:
+    url: "https://d3s3zqyaz8cp2d.cloudfront.net/aap/manifest.zip"
   controller:
     enabled: true
   eda:

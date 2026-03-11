@@ -16,6 +16,7 @@ spec:
         tenant:
           username: {{ .Values.tenant.username }}
           password: {{ .Values.tenant.password }}
+          domain: {{ .Values.tenant.domain }}
           scenario: {{ .Values.tenant.scenario }}
   destination:
     server: https://kubernetes.default.svc
