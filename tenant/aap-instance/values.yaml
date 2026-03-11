@@ -10,4 +10,7 @@ aap:
   eda:
     enabled: true
   hub:
-    enabled: false    # override to true in AgV for scenarios that need Hub
+    enabled: false                                          # override to true in AgV for scenarios that need Hub
+    fileStorageSize: 10Gi
+    fileStorageAccessMode: ReadWriteMany
+    fileStorageClass: ocs-external-storagecluster-cephfs   # CephFS required for RWX

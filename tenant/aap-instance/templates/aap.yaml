@@ -6,7 +6,7 @@ metadata:
 spec:
   admin_password_secret: {{ .Values.tenant.username }}-aap-admin-password
   controller:
-    enabled: {{ .Values.aap.controller.enabled }}
+    disabled: {{ not .Values.aap.controller.enabled }}
     resource_requirements:
       requests:
         cpu: 250m
@@ -15,7 +15,7 @@ spec:
         cpu: 1000m
         memory: 2Gi
   eda:
-    enabled: {{ .Values.aap.eda.enabled }}
+    disabled: {{ not .Values.aap.eda.enabled }}
     resource_requirements:
       requests:
         cpu: 250m
@@ -24,4 +24,7 @@ spec:
         cpu: 500m
         memory: 1Gi
   hub:
-    enabled: {{ .Values.aap.hub.enabled }}
+    disabled: {{ not .Values.aap.hub.enabled }}
+    file_storage_size: {{ .Values.aap.hub.fileStorageSize }}
+    file_storage_access_mode: {{ .Values.aap.hub.fileStorageAccessMode }}
+    file_storage_storage_class: {{ .Values.aap.hub.fileStorageClass }}
