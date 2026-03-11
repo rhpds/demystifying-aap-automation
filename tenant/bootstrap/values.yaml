@@ -6,3 +6,6 @@ tenant:
   password: ""
   domain: ""
   scenario: 3
+aap:
+  manifest:
+    url: ""       # injected from AgV via ocp4_workload_gitops_bootstrap_helm_values

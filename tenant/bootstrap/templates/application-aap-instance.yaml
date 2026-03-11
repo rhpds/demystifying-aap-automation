@@ -18,6 +18,9 @@ spec:
           password: {{ .Values.tenant.password }}
           domain: {{ .Values.tenant.domain }}
           scenario: {{ .Values.tenant.scenario }}
+        aap:
+          manifest:
+            url: {{ .Values.aap.manifest.url | quote }}
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.tenant.username }}-aap
