@@ -1,4 +1,0 @@
-apiVersion: v2
-name: infra-aap-operator
-description: AAP OLM Subscription (cluster-scoped)
-version: 0.1.0

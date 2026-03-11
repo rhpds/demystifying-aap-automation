@@ -1,4 +1,0 @@
-apiVersion: v2
-name: infra-odf
-description: OpenShift Data Foundation operator and StorageCluster
-version: 0.1.0

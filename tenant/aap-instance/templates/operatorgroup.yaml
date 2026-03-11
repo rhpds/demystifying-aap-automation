@@ -1,0 +1,9 @@
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: {{ .Values.tenant.username }}-aap-operatorgroup
+  namespace: aap-{{ .Values.tenant.username }}
+spec:
+  targetNamespaces:
+    - aap-{{ .Values.tenant.username }}
