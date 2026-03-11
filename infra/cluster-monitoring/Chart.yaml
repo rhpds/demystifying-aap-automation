@@ -1,4 +1,0 @@
-apiVersion: v2
-name: infra-cluster-monitoring
-description: Cluster monitoring configuration
-version: 0.1.0
