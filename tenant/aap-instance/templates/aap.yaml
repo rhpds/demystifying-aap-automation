@@ -5,8 +5,41 @@ metadata:
   namespace: {{ .Values.tenant.username }}-aap
 spec:
   admin_password_secret: {{ .Values.tenant.username }}-aap-admin-password
+  image_pull_policy: IfNotPresent
+  no_log: true
+  redis_mode: standalone
+  route_tls_termination_mechanism: Edge
+
+{{- if eq (int .Values.tenant.scenario) 1 }}
+  # Scenario 1: Hub only. No file_storage_storage_class — that is the intentional break.
+  # Students must diagnose why Hub fails to start (RWO vs RWX storage class requirement).
   controller:
-    disabled: {{ not .Values.aap.controller.enabled }}
+    disabled: true
+  eda:
+    disabled: true
+  hub:
+    disabled: false
+    nginx_proxy_send_timeout: 15s
+    nginx_proxy_read_timeout: 15s
+    nginx_proxy_connect_timeout: 15s
+    nginx_client_max_body_size: 10m
+    gunicorn_content_workers: 2
+    gunicorn_api_workers: 2
+    gunicorn_timeout: 10
+    haproxy_timeout: 180s
+    route_tls_termination_mechanism: Edge
+    ingress_type: Route
+    loadbalancer_port: 80
+    loadbalancer_protocol: http
+    no_log: true
+    image_pull_policy: IfNotPresent
+    force_drop_db: false
+
+{{- else if eq (int .Values.tenant.scenario) 7 }}
+  # Scenario 7: Controller + EDA, no Hub. Lightspeed disabled — that is the intentional break.
+  # Students must diagnose why the ALIA chat icon is missing and fix the LLM connection.
+  controller:
+    disabled: false
     resource_requirements:
       requests:
         cpu: 250m
@@ -15,7 +48,9 @@ spec:
         cpu: 1000m
         memory: 2Gi
   eda:
-    disabled: {{ not .Values.aap.eda.enabled }}
+    disabled: false
+    activation_worker:
+      replicas: 0
     resource_requirements:
       requests:
         cpu: 250m
@@ -24,9 +59,53 @@ spec:
         cpu: 500m
         memory: 1Gi
   hub:
-    disabled: {{ not .Values.aap.hub.enabled }}
-{{- if .Values.aap.hub.enabled }}
+    disabled: true
+  lightspeed:
+    disabled: true
+
+{{- else }}
+  # Scenarios 2-6: Controller + Hub. Identical base spec.
+  # TODO: confirm with Ryan how the break is applied for each scenario.
+  # Current understanding: break is applied post-deploy via a separate mechanism.
+  controller:
+    disabled: false
+    resource_requirements:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+  eda:
+    disabled: true
+  hub:
+    disabled: false
     file_storage_size: {{ .Values.aap.hub.fileStorageSize }}
     file_storage_access_mode: {{ .Values.aap.hub.fileStorageAccessMode }}
     file_storage_storage_class: {{ .Values.aap.hub.fileStorageClass }}
+    api:
+      resource_requirements:
+        requests:
+          cpu: 400m
+          memory: 500Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    content:
+      resource_requirements:
+        requests:
+          cpu: 100m
+          memory: 200Mi
+        limits:
+          cpu: 500m
+          memory: 800Mi
+    worker:
+      resource_requirements:
+        requests:
+          cpu: 400m
+          memory: 500Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+
 {{- end }}
