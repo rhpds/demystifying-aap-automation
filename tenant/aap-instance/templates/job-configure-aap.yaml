@@ -1,0 +1,79 @@
+---
+# Registers the namespace-admin ServiceAccount as an OpenShift/Kubernetes
+# credential in AAP Controller after manifest injection.
+# This credential is used by break/fix job templates to make Kubernetes
+# API calls against the user's namespace without cluster-admin access.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.tenant.username }}-aap-configure
+  namespace: {{ .Values.tenant.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: "1"   # runs after manifest injection (wave 0)
+spec:
+  backoffLimit: 20
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: aap-break-sa
+      volumes:
+      - name: sa-token
+        secret:
+          secretName: aap-break-sa-token
+      containers:
+      - name: configure-aap
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        volumeMounts:
+        - name: sa-token
+          mountPath: /var/run/secrets/break-sa
+          readOnly: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
+          SA_TOKEN=$(cat /var/run/secrets/break-sa/token)
+
+          echo "Waiting for AAP Controller..."
+          until curl -sk -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/ping/" \
+            -o /dev/null -w "%{http_code}" | grep -q "200"; do
+            echo "Controller not ready, retrying in 30s..."
+            sleep 30
+          done
+
+          echo "Looking up OpenShift credential type..."
+          CRED_TYPE_ID=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/credential_types/?name=OpenShift+or+Kubernetes+API+Bearer+Token" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+          echo "Credential type ID: ${CRED_TYPE_ID}"
+
+          echo "Creating namespace-admin credential..."
+          curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "${CONTROLLER_URL}/api/v2/credentials/" \
+            -d "{
+              \"name\": \"Namespace Admin SA\",
+              \"description\": \"Namespace-scoped SA token for break/fix job templates\",
+              \"credential_type\": ${CRED_TYPE_ID},
+              \"organization\": 1,
+              \"inputs\": {
+                \"host\": \"${CLUSTER_API_URL}\",
+                \"bearer_token\": \"${SA_TOKEN}\",
+                \"verify_ssl\": false
+              }
+            }"
+
+          echo ""
+          echo "AAP credential registered successfully."
+        env:
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.tenant.username }}-aap-admin-password
+              key: password
+        - name: CLUSTER_API_URL
+          value: {{ .Values.tenant.apiUrl | quote }}
