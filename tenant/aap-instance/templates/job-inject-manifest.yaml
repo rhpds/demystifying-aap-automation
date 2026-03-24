@@ -6,7 +6,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ .Values.tenant.username }}-aap-manifest
-  namespace: {{ .Values.tenant.username }}-aap
+  namespace: {{ .Values.tenant.namespace }}
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
@@ -22,7 +22,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.username }}-aap.{{ .Values.tenant.domain }}"
+          CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
 
           echo "Waiting for AAP Controller at ${CONTROLLER_URL}..."
           until curl -sk \
