@@ -1,0 +1,113 @@
+---
+# Required extra vars:
+#   namespace    — user's scenario namespace (e.g. user-abc12-scenario-4)
+#   aap_cr_name  — AAP CR name (e.g. user-abc12-aap)
+#   hub_url      — AAP gateway URL (e.g. https://user-abc12-aap-user-abc12-scenario-4.apps.cluster)
+#   hub_password — AAP admin password
+- name: Break Scenario 4
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Adjusting some stuff....
+      no_log: true
+      block:
+        - name: Configure this bit
+          kubernetes.core.k8s:
+            state: patched
+            definition:
+              apiVersion: aap.ansible.com/v1alpha1
+              kind: AnsibleAutomationPlatform
+              metadata:
+                name: "{{ aap_cr_name }}"
+                namespace: "{{ namespace }}"
+              spec:
+                hub:
+                  content:
+                    resource_requirements:
+                      limits:
+                        cpu: 500m
+                        memory: 800Mi
+                      requests:
+                        cpu: 100m
+                        memory: 200Mi
+                  api:
+                    resource_requirements:
+                      limits:
+                        cpu: 1000m
+                        memory: 1Gi
+                      requests:
+                        cpu: 400m
+                        memory: 500Mi
+                  worker:
+                    resource_requirements:
+                      limits:
+                        cpu: 1000m
+                        memory: 1Gi
+                      requests:
+                        cpu: 400m
+                        memory: 500Mi
+
+        - name: Tweak the Enterprise Funnel Flow
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Secret
+            name: "{{ aap_cr_name }}-hub-admin-password"
+            namespace: "{{ namespace }}"
+          register: hub_secret
+
+        - name: Check for Secret Squirrel Stashes
+          ansible.builtin.fail:
+            msg: "Secret {{ aap_cr_name }}-hub-admin-password not found."
+          when: hub_secret.resources | length == 0
+
+        - name: Checking Battery Levels
+          ansible.builtin.set_fact:
+            adminpw_string_raw: "{{ hub_secret.resources[0].data.password | b64decode | string }}"
+
+        - name: Deploying the Batarang
+          ansible.builtin.set_fact:
+            hub_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+        - name: Setting the GOTO Statement
+          ansible.builtin.debug:
+            msg: "All systems nominal."
+          no_log: false
+
+        - name: Clearing the Cache of Infinite Jest
+          kubernetes.core.k8s_info:
+            api_version: aap.ansible.com/v1alpha1
+            kind: AnsibleAutomationPlatform
+            name: "{{ aap_cr_name }}"
+            namespace: "{{ namespace }}"
+          register: aap_cr_info
+
+        - name: Importing Time Lord Configuration
+          ansible.builtin.set_fact:
+            gateway_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+          when:
+            - aap_cr_info.resources | length > 0
+            - aap_cr_info.resources[0].status.URL is defined
+
+        - name: Measure the Server's Aura
+          ansible.builtin.fail:
+            msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status."
+          when: gateway_host | length == 0
+
+        - name: Resetting the Vibe
+          ansible.hub.collection_remote:
+            name: community
+            ah_host: "{{ gateway_host }}"
+            ah_username: admin
+            ah_password: "{{ hub_admin_password }}"
+            url: https://galaxy.ansible.com/api/
+            requirements:
+              - infra.controller_configuration
+              - community.general
+              - kubernetes.core
+              - awx.awx
+              - ansible.posix
+
+        - name: Do a thing
+          ansible.builtin.debug:
+            msg: Now please go sync the community remote in Hub
+          no_log: false
