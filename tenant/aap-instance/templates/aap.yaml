@@ -2,7 +2,7 @@ apiVersion: aap.ansible.com/v1alpha1
 kind: AnsibleAutomationPlatform
 metadata:
   name: {{ .Values.tenant.username }}-aap
-  namespace: {{ .Values.tenant.username }}-aap
+  namespace: {{ .Values.tenant.namespace }}
 spec:
   admin_password_secret: {{ .Values.tenant.username }}-aap-admin-password
   image_pull_policy: IfNotPresent
@@ -64,9 +64,9 @@ spec:
     disabled: true
 
 {{- else }}
-  # Scenarios 2-6: Controller + Hub. Identical base spec.
-  # TODO: confirm with Ryan how the break is applied for each scenario.
-  # Current understanding: break is applied post-deploy via a separate mechanism.
+  # Scenarios 2-6: Controller + Hub. Identical base spec — clean AAP deployed.
+  # The break is applied by the student via AAP job templates pre-loaded in their
+  # Controller instance (converted from break.yml roles in rh1-aap-troubleshooting).
   controller:
     disabled: false
     resource_requirements:
