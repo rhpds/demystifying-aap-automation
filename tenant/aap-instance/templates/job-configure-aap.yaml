@@ -1,8 +1,11 @@
 ---
-# Registers the namespace-admin ServiceAccount as an OpenShift/Kubernetes
-# credential in AAP Controller after manifest injection.
-# This credential is used by break/fix job templates to make Kubernetes
-# API calls against the user's namespace without cluster-admin access.
+# PostSync job that configures AAP Controller after manifest injection:
+#   1. Registers the namespace-admin SA as an OpenShift credential
+#   2. Creates a project pointing to demystifying-aap-automation
+#   3. Creates a "Break Scenario" job template for the current scenario
+#
+# Runs at sync-wave 1 (after manifest injection at wave 0).
+# Deleted on success.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -11,7 +14,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
-    argocd.argoproj.io/sync-wave: "1"   # runs after manifest injection (wave 0)
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   backoffLimit: 20
   template:
@@ -35,7 +38,13 @@ spec:
         - |
           CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
           SA_TOKEN=$(cat /var/run/secrets/break-sa/token)
+          SCENARIO="{{ .Values.tenant.scenario }}"
+          NAMESPACE="{{ .Values.tenant.namespace }}"
+          AAP_CR_NAME="{{ .Values.tenant.username }}-aap"
 
+          # ----------------------------------------------------------------
+          # Wait for AAP Controller
+          # ----------------------------------------------------------------
           echo "Waiting for AAP Controller..."
           until curl -sk -u "admin:${ADMIN_PASSWORD}" \
             "${CONTROLLER_URL}/api/v2/ping/" \
@@ -43,7 +52,11 @@ spec:
             echo "Controller not ready, retrying in 30s..."
             sleep 30
           done
+          echo "Controller ready."
 
+          # ----------------------------------------------------------------
+          # 1. Register namespace-admin SA as OpenShift credential
+          # ----------------------------------------------------------------
           echo "Looking up OpenShift credential type..."
           CRED_TYPE_ID=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
             "${CONTROLLER_URL}/api/v2/credential_types/?name=OpenShift+or+Kubernetes+API+Bearer+Token" \
@@ -65,10 +78,82 @@ spec:
                 \"bearer_token\": \"${SA_TOKEN}\",
                 \"verify_ssl\": false
               }
-            }"
+            }" > /dev/null
+          echo "Credential registered."
 
-          echo ""
-          echo "AAP credential registered successfully."
+          CRED_ID=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/credentials/?name=Namespace+Admin+SA" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+
+          # ----------------------------------------------------------------
+          # 2. Create project
+          # ----------------------------------------------------------------
+          echo "Creating AAP Troubleshooting project..."
+          curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "${CONTROLLER_URL}/api/v2/projects/" \
+            -d '{
+              "name": "AAP Troubleshooting Demo",
+              "description": "Break/fix playbooks for demystifying AAP on OCP",
+              "organization": 1,
+              "scm_type": "git",
+              "scm_url": "https://github.com/rhpds/demystifying-aap-automation.git",
+              "scm_branch": "main",
+              "scm_update_on_launch": false
+            }' > /dev/null
+
+          PROJECT_ID=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/projects/?name=AAP+Troubleshooting+Demo" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+          echo "Project ID: ${PROJECT_ID}"
+
+          echo "Waiting for project sync..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
+              "${CONTROLLER_URL}/api/v2/projects/${PROJECT_ID}/" \
+              | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+            echo "  Status: ${STATUS}"
+            [ "${STATUS}" = "successful" ] && break
+            [ "${STATUS}" = "failed" ] && echo "Project sync failed!" && exit 1
+            sleep 10
+          done
+
+          # ----------------------------------------------------------------
+          # 3. Create break job template for this scenario
+          # ----------------------------------------------------------------
+          echo "Creating Break Scenario ${SCENARIO} job template..."
+          curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "${CONTROLLER_URL}/api/v2/job_templates/" \
+            -d "{
+              \"name\": \"Break Scenario\",
+              \"description\": \"Apply the break for scenario ${SCENARIO}\",
+              \"organization\": 1,
+              \"project\": ${PROJECT_ID},
+              \"playbook\": \"playbooks/break-scenario-${SCENARIO}.yml\",
+              \"inventory\": 1,
+              \"job_type\": \"run\",
+              \"allow_simultaneous\": false,
+              \"extra_vars\": \"{\\\"namespace\\\": \\\"${NAMESPACE}\\\", \\\"aap_cr_name\\\": \\\"${AAP_CR_NAME}\\\"}\"
+            }" > /dev/null
+
+          JT_ID=$(curl -sk -u "admin:${ADMIN_PASSWORD}" \
+            "${CONTROLLER_URL}/api/v2/job_templates/?name=Break+Scenario" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['results'][0]['id'])")
+
+          echo "Attaching Namespace Admin SA credential to job template..."
+          curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            "${CONTROLLER_URL}/api/v2/job_templates/${JT_ID}/credentials/" \
+            -d "{\"id\": ${CRED_ID}}" > /dev/null
+
+          echo "AAP Controller configured successfully."
+          echo "  Project: AAP Troubleshooting Demo"
+          echo "  Job template: Break Scenario (scenario ${SCENARIO})"
+          echo "  Credential: Namespace Admin SA"
         env:
         - name: ADMIN_PASSWORD
           valueFrom:
