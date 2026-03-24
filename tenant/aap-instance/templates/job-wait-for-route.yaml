@@ -7,7 +7,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ .Values.tenant.username }}-aap-route-wait
-  namespace: {{ .Values.tenant.username }}-aap
+  namespace: {{ .Values.tenant.namespace }}
 spec:
   backoffLimit: 60     # 60 × 30s = 30 min max wait
   template:
@@ -20,7 +20,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          GATEWAY_URL="https://{{ .Values.tenant.username }}-aap-{{ .Values.tenant.username }}-aap.{{ .Values.tenant.domain }}"
+          GATEWAY_URL="https://{{ .Values.tenant.username }}-aap-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
 
           echo "Waiting for AAP gateway route at ${GATEWAY_URL}..."
           until curl -sk \
