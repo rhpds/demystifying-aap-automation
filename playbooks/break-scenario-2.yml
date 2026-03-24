@@ -1,0 +1,82 @@
+---
+# Required extra vars:
+#   namespace    — user's scenario namespace (e.g. user-abc12-scenario-2)
+#   aap_cr_name  — AAP CR name (e.g. user-abc12-aap)
+- name: Break Scenario 2
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Looking for something
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app.kubernetes.io/component=aap-gateway
+      register: gateway_pods
+      no_log: true
+
+    - name: Find another thing
+      ansible.builtin.set_fact:
+        extracted_name_raw: >-
+          {{ gateway_pods.resources
+            | selectattr('status.phase', 'equalto', 'Running')
+            | map(attribute='metadata.name')
+            | first | default('') | string }}
+      no_log: true
+
+    - name: Find another thing again
+      ansible.builtin.set_fact:
+        gateway_pod_name: "{{ extracted_name_raw | replace('\n', '') | replace('\r', '') | trim }}"
+      no_log: true
+
+    - name: Fail sometimes
+      ansible.builtin.fail:
+        msg: "Could not find a running pod with the label 'app=aap-gateway'. Check pod status."
+      when: gateway_pod_name is none or gateway_pod_name | length == 0
+
+    - name: Here be secrets
+      kubernetes.core.k8s_exec:
+        namespace: "{{ namespace }}"
+        pod: "{{ gateway_pod_name }}"
+        container: api
+        command: aap-gateway-manage update_password --username admin --password h2as43d978hj
+      register: command_output
+      changed_when: command_output.rc == 0
+      no_log: true
+
+    - name: Whats in a name?
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        name: ansible-automation-platform-operator
+        namespace: "{{ namespace }}"
+      register: sub_info
+      no_log: true
+
+    - name: Finding something else
+      ansible.builtin.set_fact:
+        current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
+      no_log: true
+
+    - name: No name task
+      kubernetes.core.k8s:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        name: "{{ current_csv_name }}"
+        namespace: "{{ namespace }}"
+        merge_type: json
+        resource_definition:
+          - op: replace
+            path: /spec/install/spec/deployments/0/spec/replicas
+            value: 0
+      no_log: true
+
+    - name: Making changes to prod on a friday
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Service
+        name: "{{ aap_cr_name }}-postgres-15"
+        namespace: "{{ namespace }}"
+        state: absent
+      no_log: true
