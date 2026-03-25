@@ -8,6 +8,9 @@ tenant:
 aap:
   version: "2.6"
   operatorChannel: stable-2.6
+  # Pinned CSV — prevents automatic upgrades if ENG publishes a new version during Summit.
+  # Source: roles/operator/vars/main.yml in rl-rh/rh1-aap-troubleshooting PR#2
+  startingCSV: "aap-operator.v2.6.0-0.1772556720"
   manifest:
     url: ""            # injected from AgV via ocp4_workload_gitops_bootstrap_helm_values
   controller:
@@ -20,6 +23,6 @@ aap:
     fileStorageAccessMode: ReadWriteMany
     fileStorageClass: ocs-external-storagecluster-cephfs   # CephFS required for RWX
 alia:
-  token: ""            # litellm_master_key, injected from AgV (scenario 7 only)
+  token: ""            # litellm_master_key, injected from AgV (scenario 6 only)
   model: granite-3-2-8b-instruct
   url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
