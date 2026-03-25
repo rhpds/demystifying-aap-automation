@@ -3,10 +3,13 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: ansible-automation-platform-operator
-  namespace: {{ .Values.tenant.username }}-aap
+  namespace: {{ .Values.tenant.namespace }}
 spec:
   channel: "{{ .Values.aap.operatorChannel }}"
-  installPlanApproval: Automatic
+  # Manual approval + pinned startingCSV prevents automatic upgrades
+  # if ENG deploys a new operator version during Summit.
+  installPlanApproval: Manual
+  startingCSV: "{{ .Values.aap.startingCSV }}"
   name: ansible-automation-platform-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
