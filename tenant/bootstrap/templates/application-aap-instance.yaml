@@ -17,15 +17,28 @@ spec:
       values: |
         tenant:
           username: {{ .Values.tenant.username }}
+          namespace: {{ .Values.tenant.namespace }}
           password: {{ .Values.tenant.password }}
           domain: {{ .Values.tenant.domain }}
+          apiUrl: {{ .Values.tenant.apiUrl | quote }}
           scenario: {{ .Values.tenant.scenario }}
         aap:
+          operatorChannel: {{ .Values.aap.operatorChannel }}
+          startingCSV: {{ .Values.aap.startingCSV | quote }}
           manifest:
             url: {{ .Values.aap.manifest.url | quote }}
+          hub:
+            enabled: {{ .Values.aap.hub.enabled }}
+            fileStorageSize: {{ .Values.aap.hub.fileStorageSize }}
+            fileStorageAccessMode: {{ .Values.aap.hub.fileStorageAccessMode }}
+            fileStorageClass: {{ .Values.aap.hub.fileStorageClass }}
+        alia:
+          token: {{ .Values.alia.token | quote }}
+          model: {{ .Values.alia.model }}
+          url: {{ .Values.alia.url }}
   destination:
     server: https://kubernetes.default.svc
-    namespace: {{ .Values.tenant.username }}-aap
+    namespace: {{ .Values.tenant.namespace }}
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions:
