@@ -3,7 +3,6 @@
 # for the CSV to reach Succeeded before completing.
 # Runs at sync-wave 1 — after the Subscription is created (wave 0) and
 # before the AnsibleAutomationPlatform CR is applied (wave 2).
-# This ensures the AAP CRD exists before ArgoCD tries to apply aap.yaml.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -12,7 +11,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  backoffLimit: 40     # 40 × 30s = 20 min max wait
+  backoffLimit: 40
   template:
     spec:
       restartPolicy: OnFailure
@@ -24,21 +23,16 @@ spec:
         - /bin/sh
         - -c
         - |
-          NAMESPACE="{{ .Values.tenant.namespace }}"
+          NS="{{ .Values.tenant.namespace }}"
           API="https://kubernetes.default.svc"
           TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-          echo "Waiting for InstallPlan to appear in ${NAMESPACE}..."
+          echo "Waiting for InstallPlan to appear in ${NS}..."
           while true; do
             IP_NAME=$(curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
-              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NAMESPACE}/installplans" \
-              | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-plans = [p for p in data.get('items', []) if not p.get('spec', {}).get('approved', True)]
-print(plans[0]['metadata']['name'] if plans else '')
-" 2>/dev/null)
+              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/installplans" \
+              | python3 -c "import sys,json;d=json.load(sys.stdin);ps=[p for p in d.get('items',[]) if not p.get('spec',{}).get('approved',True)];print(ps[0]['metadata']['name'] if ps else '')" 2>/dev/null)
             [ -n "${IP_NAME}" ] && break
             echo "  No pending InstallPlan yet, retrying in 30s..."
             sleep 30
@@ -48,20 +42,15 @@ print(plans[0]['metadata']['name'] if plans else '')
           curl -sk --cacert ${CA} -X PATCH \
             -H "Authorization: Bearer ${TOKEN}" \
             -H "Content-Type: application/merge-patch+json" \
-            "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NAMESPACE}/installplans/${IP_NAME}" \
+            "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/installplans/${IP_NAME}" \
             -d '{"spec":{"approved":true}}' > /dev/null
           echo "InstallPlan approved."
 
           echo "Waiting for CSV to reach Succeeded..."
           while true; do
             STATUS=$(curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
-              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NAMESPACE}/clusterserviceversions" \
-              | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-csvs = data.get('items', [])
-print(csvs[0].get('status', {}).get('phase', 'unknown') if csvs else 'none')
-" 2>/dev/null)
+              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/clusterserviceversions" \
+              | python3 -c "import sys,json;d=json.load(sys.stdin);cs=d.get('items',[]);print(cs[0].get('status',{}).get('phase','unknown') if cs else 'none')" 2>/dev/null)
             echo "  CSV phase: ${STATUS}"
             [ "${STATUS}" = "Succeeded" ] && break
             [ "${STATUS}" = "Failed" ] && echo "CSV failed!" && exit 1
