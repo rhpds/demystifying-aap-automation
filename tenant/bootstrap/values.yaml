@@ -2,10 +2,23 @@ bootstrap:
   repoURL: https://github.com/rhpds/demystifying-aap-automation
   targetRevision: main
 tenant:
-  username: ""    # injected at provision time by ocp4_workload_gitops_bootstrap
+  username: ""        # injected by ocp4_workload_gitops_bootstrap
+  namespace: ""       # {username}-scenario-{n}
   password: ""
   domain: ""
-  scenario: 3
+  apiUrl: ""          # cluster API URL for break SA credential
+  scenario: 1
 aap:
+  operatorChannel: stable-2.6
+  startingCSV: "aap-operator.v2.6.0-0.1772556720"
   manifest:
-    url: ""       # injected from AgV via ocp4_workload_gitops_bootstrap_helm_values
+    url: ""           # injected from AgV
+  hub:
+    enabled: false
+    fileStorageSize: 10Gi
+    fileStorageAccessMode: ReadWriteMany
+    fileStorageClass: ocs-external-storagecluster-cephfs
+alia:
+  token: ""           # litellm_master_key, injected from AgV (scenario 6 only)
+  model: granite-3-2-8b-instruct
+  url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
