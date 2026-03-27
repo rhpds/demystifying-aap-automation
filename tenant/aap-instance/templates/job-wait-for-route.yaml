@@ -1,13 +1,15 @@
 ---
 # Waits until the AAP gateway route is accessible (HTTP 200/302).
-# This is a regular Job (not PostSync hook) — the aap-instance Application
-# is only Healthy when this Job completes successfully.
-# ArgoCD uses this to gate sync-wave: "1" (Showroom) until AAP is ready.
+# Runs at sync-wave 3 — after the AnsibleAutomationPlatform CR (wave 2).
+# The aap-instance Application is only Healthy when this Job completes,
+# which gates the bootstrap Application and therefore the Showroom deployment.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ .Values.tenant.username }}-aap-route-wait
   namespace: {{ .Values.tenant.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   backoffLimit: 60     # 60 × 30s = 30 min max wait
   template:
