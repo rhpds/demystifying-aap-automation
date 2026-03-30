@@ -9,7 +9,7 @@ metadata:
   name: {{ .Values.tenant.username }}-aap-approve-installplan
   namespace: {{ .Values.tenant.namespace }}
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   backoffLimit: 40
   template:
