@@ -1,9 +1,7 @@
 ---
 # Waits for the AAP operator CSV to reach Succeeded.
 # With Automatic installPlanApproval, the InstallPlan is auto-approved —
-# the job checks if CSV is already Succeeded first and exits immediately.
-# Only looks for a pending InstallPlan if the CSV is not yet Succeeded.
-# Runs at sync-wave 0 alongside the Subscription.
+# the job checks if the AAP CSV is already Succeeded first and exits immediately.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -29,14 +27,18 @@ spec:
           TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
           CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-          # Check if CSV is already Succeeded (Automatic approval case)
-          echo "Checking if CSV is already Succeeded..."
-          STATUS=$(curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
-            "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/clusterserviceversions" \
-            | python3 -c "import sys,json;d=json.load(sys.stdin);cs=d.get('items',[]);print(cs[0].get('status',{}).get('phase','none') if cs else 'none')" 2>/dev/null)
-          echo "  CSV phase: ${STATUS}"
+          get_aap_csv_phase() {
+            curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
+              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/clusterserviceversions" \
+              | python3 -c "import sys,json;d=json.load(sys.stdin);cs=[c for c in d.get('items',[]) if 'aap-operator' in c.get('metadata',{}).get('name','')];print(cs[0].get('status',{}).get('phase','none') if cs else 'none')" 2>/dev/null
+          }
+
+          # Check if AAP CSV is already Succeeded (Automatic approval case)
+          echo "Checking if AAP CSV is already Succeeded..."
+          STATUS=$(get_aap_csv_phase)
+          echo "  AAP CSV phase: ${STATUS}"
           if [ "${STATUS}" = "Succeeded" ]; then
-            echo "CSV already Succeeded — nothing to approve."
+            echo "AAP CSV already Succeeded — nothing to approve."
             exit 0
           fi
 
@@ -47,15 +49,12 @@ spec:
               | python3 -c "import sys,json;d=json.load(sys.stdin);ps=[p for p in d.get('items',[]) if not p.get('spec',{}).get('approved',True)];print(ps[0]['metadata']['name'] if ps else '')" 2>/dev/null)
             [ -n "${IP_NAME}" ] && break
 
-            # Re-check if CSV succeeded while waiting
-            STATUS=$(curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
-              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/clusterserviceversions" \
-              | python3 -c "import sys,json;d=json.load(sys.stdin);cs=d.get('items',[]);print(cs[0].get('status',{}).get('phase','none') if cs else 'none')" 2>/dev/null)
+            STATUS=$(get_aap_csv_phase)
             if [ "${STATUS}" = "Succeeded" ]; then
-              echo "CSV reached Succeeded while waiting — done."
+              echo "AAP CSV reached Succeeded while waiting — done."
               exit 0
             fi
-            echo "  No pending InstallPlan yet, retrying in 30s..."
+            echo "  No pending InstallPlan yet (AAP CSV: ${STATUS}), retrying in 30s..."
             sleep 30
           done
 
@@ -67,14 +66,12 @@ spec:
             -d '{"spec":{"approved":true}}' > /dev/null
           echo "InstallPlan approved."
 
-          echo "Waiting for CSV to reach Succeeded..."
+          echo "Waiting for AAP CSV to reach Succeeded..."
           while true; do
-            STATUS=$(curl -sk --cacert ${CA} -H "Authorization: Bearer ${TOKEN}" \
-              "${API}/apis/operators.coreos.com/v1alpha1/namespaces/${NS}/clusterserviceversions" \
-              | python3 -c "import sys,json;d=json.load(sys.stdin);cs=d.get('items',[]);print(cs[0].get('status',{}).get('phase','unknown') if cs else 'none')" 2>/dev/null)
-            echo "  CSV phase: ${STATUS}"
+            STATUS=$(get_aap_csv_phase)
+            echo "  AAP CSV phase: ${STATUS}"
             [ "${STATUS}" = "Succeeded" ] && break
-            [ "${STATUS}" = "Failed" ] && echo "CSV failed!" && exit 1
+            [ "${STATUS}" = "Failed" ] && echo "AAP CSV failed!" && exit 1
             sleep 30
           done
           echo "AAP operator ready."
