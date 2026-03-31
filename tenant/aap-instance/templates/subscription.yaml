@@ -6,10 +6,7 @@ metadata:
   namespace: {{ .Values.tenant.namespace }}
 spec:
   channel: "{{ .Values.aap.operatorChannel }}"
-  # Manual approval + pinned startingCSV prevents automatic upgrades
-  # if ENG deploys a new operator version during Summit.
   installPlanApproval: Automatic
-  startingCSV: "{{ .Values.aap.startingCSV }}"
   name: ansible-automation-platform-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
