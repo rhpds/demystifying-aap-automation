@@ -1,7 +1,6 @@
 ---
 # Injects the AAP subscription manifest after AAP Controller is ready.
-# Runs as an ArgoCD PostSync hook — deleted on success.
-# Polls Controller API every 30s until ready, then injects manifest via API.
+# Skips gracefully if Controller is not reachable (Hub-only scenarios).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -11,7 +10,7 @@ metadata:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
 spec:
-  backoffLimit: 20     # retry up to 20 times (~10 min polling window)
+  backoffLimit: 20
   template:
     spec:
       restartPolicy: OnFailure
@@ -23,32 +22,23 @@ spec:
         - -c
         - |
           CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
-
-          echo "Waiting for AAP Controller at ${CONTROLLER_URL}..."
-          until curl -sk \
-            --max-time 10 \
-            -u "admin:${ADMIN_PASSWORD}" \
-            "${CONTROLLER_URL}/api/v2/ping/" \
-            -o /dev/null -w "%{http_code}" | grep -q "200"; do
+          echo "Checking if Controller is reachable..."
+          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${CONTROLLER_URL}/api/v2/ping/" || echo "000")
+          if [ "${HTTP}" = "000" ] || [ "${HTTP}" = "404" ]; then
+            echo "Controller not available (HTTP ${HTTP}) — skipping manifest injection (Hub-only scenario)."
+            exit 0
+          fi
+          echo "Waiting for AAP Controller..."
+          until curl -sk --max-time 10 -u "admin:${ADMIN_PASSWORD}" "${CONTROLLER_URL}/api/v2/ping/" -o /dev/null -w "%{http_code}" | grep -q "200"; do
             echo "Controller not ready, retrying in 30s..."
             sleep 30
           done
-
           echo "Controller ready. Downloading manifest..."
           curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
-
-          echo "Injecting manifest..."
-          RESULT=$(curl -sk -X POST \
-            -u "admin:${ADMIN_PASSWORD}" \
-            -F "manifest=@/tmp/manifest.zip" \
-            -o /tmp/result.json \
-            -w "%{http_code}" \
-            "${CONTROLLER_URL}/api/v2/config/")
-
+          RESULT=$(curl -sk -X POST -u "admin:${ADMIN_PASSWORD}" -F "manifest=@/tmp/manifest.zip" -o /tmp/result.json -w "%{http_code}" "${CONTROLLER_URL}/api/v2/config/")
           echo "HTTP status: ${RESULT}"
           cat /tmp/result.json
           echo ""
-
           if echo "${RESULT}" | grep -qE "^2"; then
             echo "Manifest injected successfully."
           else
