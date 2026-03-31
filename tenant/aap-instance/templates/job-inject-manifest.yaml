@@ -1,7 +1,7 @@
 ---
-# Injects the AAP subscription manifest after AAP Controller is ready.
-# AAP 2.6 requires manifest as base64-encoded JSON, not multipart/form-data.
-# Skips gracefully if Controller is not reachable (Hub-only scenarios).
+# Injects the AAP subscription manifest via the AAP Gateway.
+# AAP 2.6: use gateway URL /api/controller/v2/config/ with base64-encoded JSON manifest.
+# Skips gracefully if Gateway is not reachable (Hub-only scenarios).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -22,30 +22,31 @@ spec:
         - /bin/sh
         - -c
         - |
-          CONTROLLER_URL="https://{{ .Values.tenant.username }}-aap-controller-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
-          echo "Checking if Controller is reachable..."
-          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${CONTROLLER_URL}/api/v2/ping/" || echo "000")
+          GATEWAY_URL="https://{{ .Values.tenant.username }}-aap-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
+          CONFIG_URL="${GATEWAY_URL}/api/controller/v2/config/"
+          echo "Checking if Gateway is reachable..."
+          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${GATEWAY_URL}/api/v2/ping/" || echo "000")
           if [ "${HTTP}" = "000" ] || [ "${HTTP}" = "404" ]; then
-            echo "Controller not available (HTTP ${HTTP}) — skipping manifest injection."
+            echo "Gateway not available (HTTP ${HTTP}) — skipping manifest injection."
             exit 0
           fi
-          echo "Waiting for AAP Controller..."
-          until curl -sk --max-time 10 -u "admin:${ADMIN_PASSWORD}" "${CONTROLLER_URL}/api/v2/ping/" -o /dev/null -w "%{http_code}" | grep -q "200"; do
-            echo "Controller not ready, retrying in 30s..."
+          echo "Waiting for AAP Gateway..."
+          until curl -sk --max-time 10 -u "admin:${ADMIN_PASSWORD}" "${GATEWAY_URL}/api/v2/ping/" -o /dev/null -w "%{http_code}" | grep -q "200"; do
+            echo "Gateway not ready, retrying in 30s..."
             sleep 30
           done
-          echo "Controller ready. Downloading manifest..."
+          echo "Gateway ready. Downloading manifest..."
           curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
           echo "Encoding manifest as base64..."
-          B64=$(python3 -c "import base64; print(base64.b64encode(open('/tmp/manifest.zip','rb').read()).decode())")
-          echo "Injecting manifest via JSON API..."
+          B64=$(python3 -c "import base64; print(base64.b64encode(open('\/tmp/manifest.zip'','''rb\').read()).decode())")
+          echo "Injecting manifest via ${CONFIG_URL}..."
           RESULT=$(curl -sk -X POST \
             -u "admin:${ADMIN_PASSWORD}" \
             -H "Content-Type: application/json" \
             -d "{\\"eula_accepted\\": true, \\"manifest\\": \\"${B64}\\"}" \
             -o /tmp/result.json \
             -w "%{http_code}" \
-            "${CONTROLLER_URL}/api/v2/config/")
+            "${CONFIG_URL}")
           echo "HTTP status: ${RESULT}"
           cat /tmp/result.json
           echo ""
