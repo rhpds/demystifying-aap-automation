@@ -1,5 +1,6 @@
 ---
 # Injects the AAP subscription manifest after AAP Controller is ready.
+# AAP 2.6 requires manifest as base64-encoded JSON, not multipart/form-data.
 # Skips gracefully if Controller is not reachable (Hub-only scenarios).
 apiVersion: batch/v1
 kind: Job
@@ -25,7 +26,7 @@ spec:
           echo "Checking if Controller is reachable..."
           HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${CONTROLLER_URL}/api/v2/ping/" || echo "000")
           if [ "${HTTP}" = "000" ] || [ "${HTTP}" = "404" ]; then
-            echo "Controller not available (HTTP ${HTTP}) — skipping manifest injection (Hub-only scenario)."
+            echo "Controller not available (HTTP ${HTTP}) — skipping manifest injection."
             exit 0
           fi
           echo "Waiting for AAP Controller..."
@@ -35,7 +36,16 @@ spec:
           done
           echo "Controller ready. Downloading manifest..."
           curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
-          RESULT=$(curl -sk -X POST -u "admin:${ADMIN_PASSWORD}" -F "manifest=@/tmp/manifest.zip" -o /tmp/result.json -w "%{http_code}" "${CONTROLLER_URL}/api/v2/config/")
+          echo "Encoding manifest as base64..."
+          B64=$(python3 -c "import base64; print(base64.b64encode(open('/tmp/manifest.zip','rb').read()).decode())")
+          echo "Injecting manifest via JSON API..."
+          RESULT=$(curl -sk -X POST \
+            -u "admin:${ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            -d "{\\"eula_accepted\\": true, \\"manifest\\": \\"${B64}\\"}" \
+            -o /tmp/result.json \
+            -w "%{http_code}" \
+            "${CONTROLLER_URL}/api/v2/config/")
           echo "HTTP status: ${RESULT}"
           cat /tmp/result.json
           echo ""
