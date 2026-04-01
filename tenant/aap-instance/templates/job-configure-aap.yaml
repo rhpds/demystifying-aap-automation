@@ -27,7 +27,7 @@ spec:
           secretName: aap-break-sa-token
       containers:
       - name: configure-aap
-        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        image: registry.access.redhat.com/ubi9/ubi:latest
         volumeMounts:
         - name: sa-token
           mountPath: /var/run/secrets/break-sa
