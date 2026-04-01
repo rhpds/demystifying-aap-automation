@@ -25,13 +25,13 @@ spec:
           GATEWAY_URL="https://{{ .Values.tenant.username }}-aap-{{ .Values.tenant.namespace }}.{{ .Values.tenant.domain }}"
           CONFIG_URL="${GATEWAY_URL}/api/controller/v2/config/"
           echo "Checking if Gateway is reachable..."
-          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${GATEWAY_URL}/api/v2/ping/" || echo "000")
+          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "${GATEWAY_URL}/api/controller/v2/ping/" || echo "000")
           if [ "${HTTP}" = "000" ] || [ "${HTTP}" = "404" ]; then
             echo "Gateway not available (HTTP ${HTTP}) — skipping manifest injection."
             exit 0
           fi
           echo "Waiting for AAP Gateway..."
-          until curl -sk --max-time 10 -u "admin:${ADMIN_PASSWORD}" "${GATEWAY_URL}/api/v2/ping/" -o /dev/null -w "%{http_code}" | grep -q "200"; do
+          until curl -sk --max-time 10 -u "admin:${ADMIN_PASSWORD}" "${GATEWAY_URL}/api/controller/v2/ping/" -o /dev/null -w "%{http_code}" | grep -q "200"; do
             echo "Gateway not ready, retrying in 30s..."
             sleep 30
           done
