@@ -47,7 +47,7 @@ spec:
           # ----------------------------------------------------------------
           echo "Waiting for AAP Controller..."
           until curl -sk -u "admin:${ADMIN_PASSWORD}" \
-            "${GATEWAY_URL}/api/v2/ping/" \
+            "${GATEWAY_URL}/api/controller/v2/ping/" \
             -o /dev/null -w "%{http_code}" | grep -q "200"; do
             echo "Controller not ready, retrying in 30s..."
             sleep 30
