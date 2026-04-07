@@ -38,7 +38,7 @@ spec:
           echo "Gateway ready. Downloading manifest..."
           curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
           echo "Encoding manifest as base64..."
-          B64=$(python3 -c "import base64; print(base64.b64encode(open('\/tmp/manifest.zip'','''rb\').read()).decode())")
+          B64=$(base64 -w 0 /tmp/manifest.zip)
           echo "Injecting manifest via ${CONFIG_URL}..."
           RESULT=$(curl -sk -X POST \
             -u "admin:${ADMIN_PASSWORD}" \
