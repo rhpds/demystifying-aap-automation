@@ -39,11 +39,12 @@ spec:
           curl -sSL -o /tmp/manifest.zip "${MANIFEST_URL}"
           echo "Encoding manifest as base64..."
           B64=$(base64 -w 0 /tmp/manifest.zip)
+          printf '{"eula_accepted": true, "manifest": "%s"}' "${B64}" > /tmp/manifest_payload.json
           echo "Injecting manifest via ${CONFIG_URL}..."
           RESULT=$(curl -sk -X POST \
             -u "admin:${ADMIN_PASSWORD}" \
             -H "Content-Type: application/json" \
-            -d "{\\"eula_accepted\\": true, \\"manifest\\": \\"${B64}\\"}" \
+            -d @/tmp/manifest_payload.json \
             -o /tmp/result.json \
             -w "%{http_code}" \
             "${CONFIG_URL}")
