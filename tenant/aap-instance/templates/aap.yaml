@@ -15,12 +15,14 @@ spec:
 {{- if eq (int .Values.tenant.scenario) 1 }}
   # Scenario 1: Hub only. No file_storage_storage_class — that is the intentional break.
   # Students must diagnose why Hub fails to start (RWO vs RWX storage class requirement).
+  # file_storage_size is set to fit within tenant quota; the break is the missing storage class.
   controller:
     disabled: true
   eda:
     disabled: true
   hub:
     disabled: false
+    file_storage_size: 10Gi
     nginx_proxy_send_timeout: 15s
     nginx_proxy_read_timeout: 15s
     nginx_proxy_connect_timeout: 15s
