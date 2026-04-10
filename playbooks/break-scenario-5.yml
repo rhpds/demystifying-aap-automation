@@ -22,6 +22,7 @@
                 namespace: "{{ namespace }}"
               spec:
                 hub:
+                  file_storage_size: 25Mi
                   content:
                     resource_requirements:
                       limits:
@@ -46,6 +47,14 @@
                       requests:
                         cpu: 400m
                         memory: 500Mi
+
+        - name: Collapsing the Wave Function
+          kubernetes.core.k8s:
+            state: absent
+            api_version: v1
+            kind: PersistentVolumeClaim
+            name: "{{ aap_cr_name }}-hub-file-storage"
+            namespace: "{{ namespace }}"
 
         - name: Tweak the Enterprise Funnel Flow
           kubernetes.core.k8s_info:
