@@ -76,11 +76,11 @@
             controller_host: "{{ controller_host }}"
             controller_oauthtoken: "{{ aap_oauth2_token }}"
             validate_certs: false
-            name: AAP Troubleshooting Demo
+            name: Summit Troubleshooting Demo
             organization: Default
             scm_type: git
             scm_url: https://github.com/rl-rh/rh1-aap-troubleshooting.git
-            scm_branch: main
+            scm_branch: summit
             scm_update_on_launch: false
             state: present
 
@@ -168,7 +168,7 @@
             name: "{{ item.name }}"
             description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
             organization: Default
-            project: AAP Troubleshooting Demo
+            project: Summit Troubleshooting Demo
             inventory: RH1 Inventory
             execution_environment: Default execution environment
             playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
@@ -191,7 +191,7 @@
             name: RH1-T4
             description: Job Template for RH1 Troubleshooting Lab 4
             organization: Default
-            project: AAP Troubleshooting Demo
+            project: Summit Troubleshooting Demo
             inventory: RH1 Inventory
             execution_environment: RH1-EE1
             playbook: playbooks/rh1-t4.yml
