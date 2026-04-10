@@ -2,8 +2,6 @@
 # Required extra vars:
 #   namespace    — user's scenario namespace (e.g. user-abc12-scenario-4)
 #   aap_cr_name  — AAP CR name (e.g. user-abc12-aap)
-#   hub_url      — AAP gateway URL (e.g. https://user-abc12-aap-user-abc12-scenario-4.apps.cluster)
-#   hub_password — AAP admin password
 - name: Break Scenario 4
   hosts: localhost
   gather_facts: false
@@ -11,69 +9,49 @@
     - name: Adjusting some stuff....
       no_log: true
       block:
-        - name: Configure this bit
-          kubernetes.core.k8s:
-            state: patched
-            definition:
-              apiVersion: aap.ansible.com/v1alpha1
-              kind: AnsibleAutomationPlatform
-              metadata:
-                name: "{{ aap_cr_name }}"
-                namespace: "{{ namespace }}"
-              spec:
-                hub:
-                  content:
-                    resource_requirements:
-                      limits:
-                        cpu: 500m
-                        memory: 800Mi
-                      requests:
-                        cpu: 100m
-                        memory: 200Mi
-                  api:
-                    resource_requirements:
-                      limits:
-                        cpu: 1000m
-                        memory: 1Gi
-                      requests:
-                        cpu: 400m
-                        memory: 500Mi
-                  worker:
-                    resource_requirements:
-                      limits:
-                        cpu: 1000m
-                        memory: 1Gi
-                      requests:
-                        cpu: 400m
-                        memory: 500Mi
-
-        - name: Tweak the Enterprise Funnel Flow
+        - name: Run Mid-Cycle Pivot Analysis
           kubernetes.core.k8s_info:
             api_version: v1
             kind: Secret
-            name: "{{ aap_cr_name }}-hub-admin-password"
+            name: "{{ aap_cr_name }}-admin-password"
             namespace: "{{ namespace }}"
-          register: hub_secret
+          register: gateway_secret
 
-        - name: Check for Secret Squirrel Stashes
+        - name: Validate the Blueness of the Sky
           ansible.builtin.fail:
-            msg: "Secret {{ aap_cr_name }}-hub-admin-password not found."
-          when: hub_secret.resources | length == 0
+            msg: "Secret '{{ aap_cr_name }}-admin-password' not found."
+          when: gateway_secret.resources | length == 0
 
-        - name: Checking Battery Levels
+        - name: Distribute Rainbow Unicorn Dust
           ansible.builtin.set_fact:
-            adminpw_string_raw: "{{ hub_secret.resources[0].data.password | b64decode | string }}"
+            adminpw_string_raw: "{{ gateway_secret.resources[0].data.password | b64decode | string }}"
 
-        - name: Deploying the Batarang
+        - name: Looking for That One File
           ansible.builtin.set_fact:
-            hub_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+            aap_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
 
-        - name: Setting the GOTO Statement
-          ansible.builtin.debug:
-            msg: "All systems nominal."
-          no_log: false
+        - name: Unlocking the Daemon's Door
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Secret
+            name: "{{ aap_cr_name }}-gateway-oauth2-token-secret"
+            namespace: "{{ namespace }}"
+          register: oauth_token_secret
 
-        - name: Clearing the Cache of Infinite Jest
+        - name: Verifying RFC 1149 Compliance
+          ansible.builtin.fail:
+            msg: "Secret '{{ aap_cr_name }}-gateway-oauth2-token-secret' not found in {{ namespace }}."
+          when: oauth_token_secret.resources | length == 0
+
+        - name: The Answer is 42
+          ansible.builtin.set_fact:
+            token_string_raw: "{{ oauth_token_secret.resources[0].data.token | b64decode | string }}"
+
+        - name: Apply Anti-Gravity Patch
+          ansible.builtin.set_fact:
+            aap_oauth2_token: "{{ token_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
+
+        - name: Normalize Gherkin Cucumber Relays
           kubernetes.core.k8s_info:
             api_version: aap.ansible.com/v1alpha1
             kind: AnsibleAutomationPlatform
@@ -81,33 +59,149 @@
             namespace: "{{ namespace }}"
           register: aap_cr_info
 
-        - name: Importing Time Lord Configuration
+        - name: Ensure Hamsters are Still Running
           ansible.builtin.set_fact:
-            gateway_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
+            controller_host: "{{ aap_cr_info.resources[0].status.URL | default('') }}"
           when:
             - aap_cr_info.resources | length > 0
             - aap_cr_info.resources[0].status.URL is defined
 
-        - name: Measure the Server's Aura
+        - name: Updating Local Timezone
           ansible.builtin.fail:
             msg: "FATAL: Could not extract the Platform Gateway URL from the AAP CR status."
-          when: gateway_host | length == 0
+          when: controller_host | length == 0
 
-        - name: Resetting the Vibe
-          ansible.hub.collection_remote:
-            name: community
-            ah_host: "{{ gateway_host }}"
-            ah_username: admin
-            ah_password: "{{ hub_admin_password }}"
-            url: https://galaxy.ansible.com/api/
-            requirements:
-              - infra.controller_configuration
-              - community.general
-              - kubernetes.core
-              - awx.awx
-              - ansible.posix
+        - name: Applying the One Ring's Policy
+          ansible.controller.project:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: AAP Troubleshooting Demo
+            organization: Default
+            scm_type: git
+            scm_url: https://github.com/rl-rh/rh1-aap-troubleshooting.git
+            scm_branch: main
+            scm_update_on_launch: false
+            state: present
 
-        - name: Do a thing
+        - name: Synchronize the Muffin Button
+          ansible.builtin.find:
+            paths: ~/.ssh
+            patterns: "*-1key.pem"
+            file_type: file
+            recurse: false
+          register: key_search
+
+        - name: Polling the Locus of Control
+          ansible.builtin.set_fact:
+            ssh_key_path: "{{ key_search.files[0].path }}"
+          failed_when: key_search.files | length == 0
+
+        - name: Rotating the X-Y-Z Coordinates
+          ansible.controller.credential:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: Lab User SSH Key
+            description: Machine credential for lab-user
+            organization: Default
+            credential_type: Machine
+            inputs:
+              username: lab-user
+              ssh_key_data: "{{ lookup('ansible.builtin.file', ssh_key_path) }}"
+              ssh_key_unlock: ""
+            state: present
+
+        - name: Checking for Kernel Panic Puppies
+          ansible.controller.inventory:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: RH1 Inventory
+            description: Inventory for RH1 Troubleshooting Labs
+            organization: Default
+            state: present
+
+        - name: Engage Hyperdrive Sequence
+          ansible.controller.host:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            inventory: RH1 Inventory
+            name: "{{ item.hostname }}"
+            description: "Lab Node {{ item.num }}"
+            variables:
+              ansible_connection: ssh
+              ansible_user: lab-user
+            state: present
+          loop:
+            - { hostname: node1, num: 1 }
+            - { hostname: node2, num: 2 }
+
+        - name: Enabling the Side-Channel Flange
+          ansible.controller.host:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            inventory: RH1 Inventory
+            name: localhost
+            state: present
+            variables:
+              ansible_connection: local
+              ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+        - name: Dialing the Stargate Address
+          ansible.controller.execution_environment:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: RH1-EE1
+            image: quay.io/rh-ee-rlaroy/ryan:latest
+            organization: Default
+            state: present
+
+        - name: Nothing to See Here
+          ansible.controller.job_template:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: "{{ item.name }}"
+            description: "Job Template for RH1 Troubleshooting Lab {{ item.suffix }}"
+            organization: Default
+            project: AAP Troubleshooting Demo
+            inventory: RH1 Inventory
+            execution_environment: Default execution environment
+            playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+            credentials:
+              - Lab User SSH Key
+            job_type: run
+            allow_simultaneous: true
+            state: present
+          loop:
+            - { name: RH1-T1, suffix: 1 }
+            - { name: RH1-T2, suffix: 2 }
+            - { name: RH1-T3, suffix: 3 }
+            - { name: RH1-T4, suffix: 4 }
+
+        - name: Consult the Magic 8-Ball API
+          ansible.controller.job_template:
+            controller_host: "{{ controller_host }}"
+            controller_oauthtoken: "{{ aap_oauth2_token }}"
+            validate_certs: false
+            name: RH1-T4
+            description: Job Template for RH1 Troubleshooting Lab 4
+            organization: Default
+            project: AAP Troubleshooting Demo
+            inventory: RH1 Inventory
+            execution_environment: RH1-EE1
+            playbook: playbooks/rh1-t4.yml
+            job_type: run
+            allow_simultaneous: true
+            state: present
+
+        - name: Log in to AAP, run RH1-T1 through RH1-T4 Job Templates
           ansible.builtin.debug:
-            msg: Now please go sync the community remote in Hub
+            msg: |-
+              Log in to AAP, run RH1-T1 through RH1-T4 Job Templates.
+              Find out whats failing.
           no_log: false
