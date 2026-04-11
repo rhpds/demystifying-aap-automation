@@ -43,8 +43,16 @@ spec:
           AAP_CR_NAME="{{ .Values.tenant.username }}-aap"
 
           # ----------------------------------------------------------------
-          # Wait for AAP Controller
+          # Check if Controller is available (skip gracefully if disabled)
           # ----------------------------------------------------------------
+          echo "Checking if Controller is available..."
+          HTTP=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" \
+            "${GATEWAY_URL}/api/controller/v2/ping/" || echo "000")
+          if [ "${HTTP}" = "000" ] || [ "${HTTP}" = "404" ]; then
+            echo "Controller not available (HTTP ${HTTP}) — skipping configuration (scenario 1: controller disabled)."
+            exit 0
+          fi
+
           echo "Waiting for AAP Controller..."
           until curl -sk -u "admin:${ADMIN_PASSWORD}" \
             "${GATEWAY_URL}/api/controller/v2/ping/" \
