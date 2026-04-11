@@ -69,10 +69,10 @@
               resource_requirements:
                 limits:
                   cpu: 1000m
-                  memory: 70Gi
+                  memory: 35Gi
                 requests:
                   cpu: 400m
-                  memory: 70Gi
+                  memory: 35Gi
       no_log: true
 
     - name: Extra Broke
