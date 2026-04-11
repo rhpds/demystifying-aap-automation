@@ -105,7 +105,7 @@
             project: Summit Troubleshooting Demo
             inventory: Demo Inventory
             execution_environment: Default execution environment
-            playbook: "playbooks/rh1-t{{ item.suffix }}.yml"
+            playbook: "playbooks/summit-t{{ item.suffix }}.yml"
             job_type: run
             allow_simultaneous: true
             state: present
@@ -125,7 +125,7 @@
             project: Summit Troubleshooting Demo
             inventory: Demo Inventory
             execution_environment: RH1-EE1
-            playbook: playbooks/rh1-t4.yml
+            playbook: playbooks/summit-t4.yml
             job_type: run
             allow_simultaneous: true
             state: present
