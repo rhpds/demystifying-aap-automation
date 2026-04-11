@@ -46,30 +46,15 @@
       no_log: true
 
     - name: Whats in a name?
-      kubernetes.core.k8s_info:
-        api_version: operators.coreos.com/v1alpha1
-        kind: Subscription
-        name: ansible-automation-platform-operator
-        namespace: "{{ namespace }}"
-      register: sub_info
-      no_log: true
-
-    - name: Finding something else
-      ansible.builtin.set_fact:
-        current_csv_name: "{{ sub_info.resources[0].status.installedCSV }}"
-      no_log: true
-
-    - name: No name task
       kubernetes.core.k8s:
-        api_version: operators.coreos.com/v1alpha1
-        kind: ClusterServiceVersion
-        name: "{{ current_csv_name }}"
+        api_version: apps/v1
+        kind: Deployment
+        name: aap-gateway-operator-controller-manager
         namespace: "{{ namespace }}"
-        merge_type: json
+        merge_type: merge
         resource_definition:
-          - op: replace
-            path: /spec/install/spec/deployments/0/spec/replicas
-            value: 0
+          spec:
+            replicas: 0
       no_log: true
 
     - name: Making changes to prod on a friday
