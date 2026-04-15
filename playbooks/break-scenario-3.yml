@@ -55,26 +55,6 @@
                 kubernetes.io/os: not_linux
       no_log: true
 
-    - name: This will be fun
-      kubernetes.core.k8s:
-        state: patched
-        definition:
-          apiVersion: aap.ansible.com/v1alpha1
-          kind: AnsibleAutomationPlatform
-          metadata:
-            name: "{{ aap_cr_name }}"
-            namespace: "{{ namespace }}"
-          spec:
-            api:
-              resource_requirements:
-                limits:
-                  cpu: 1000m
-                  memory: 35Gi
-                requests:
-                  cpu: 400m
-                  memory: 35Gi
-      no_log: true
-
     - name: Extra Broke
       kubernetes.core.k8s:
         api_version: apps/v1
@@ -126,18 +106,3 @@
         - _pg_pod.resources[0].status.phase == "Pending"
       no_log: true
 
-    - name: Is this thing on?
-      kubernetes.core.k8s_info:
-        api_version: v1
-        kind: Pod
-        namespace: "{{ namespace }}"
-        label_selectors:
-          - "app.kubernetes.io/name={{ aap_cr_name }}"
-          - app.kubernetes.io/component=aap-gateway
-      register: _gateway_pod
-      retries: 60
-      delay: 5
-      until:
-        - _gateway_pod.resources | length > 0
-        - _gateway_pod.resources | selectattr('status.phase', 'equalto', 'Pending') | list | length > 0
-      no_log: true
