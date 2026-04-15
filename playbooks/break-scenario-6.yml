@@ -12,8 +12,6 @@
         - name: Taking a Short Nap
           ansible.builtin.set_fact:
             break_model: codellama-7b-instruct
-            break_url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
-            break_token: sk-invalid-token-for-troubleshooting
 
         - name: Perform Level 6 Compliance Yoga
           kubernetes.core.k8s:
@@ -21,7 +19,7 @@
             kind: Secret
             name: chatbot-configuration-secret
             namespace: "{{ namespace }}"
-            state: present
+            state: patched
             definition:
               apiVersion: v1
               kind: Secret
@@ -31,10 +29,6 @@
               type: Opaque
               stringData:
                 chatbot_model: "{{ break_model }}"
-                chatbot_token: "{{ break_token }}"
-                chatbot_url: "{{ break_url }}"
-                chatbot_llm_provider_type: openai
-                chatbot_context_window_size: "8192"
 
         - name: Re-platform the Core Data Spigot
           kubernetes.core.k8s:
