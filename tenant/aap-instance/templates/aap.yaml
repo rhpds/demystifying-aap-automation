@@ -39,7 +39,7 @@ spec:
     image_pull_policy: IfNotPresent
     force_drop_db: false
 
-{{- else if eq (int .Values.tenant.scenario) 7 }}
+{{- else if eq (int .Values.tenant.scenario) 6 }}
   # Scenario 7: Controller + EDA, no Hub. Lightspeed disabled — that is the intentional break.
   # Students must diagnose why the ALIA chat icon is missing and fix the LLM connection.
   controller:
