@@ -39,6 +39,11 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.tenant.namespace }}
+  ignoreDifferences:
+    - kind: Secret
+      name: chatbot-configuration-secret
+      jsonPointers:
+        - /data
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions:
