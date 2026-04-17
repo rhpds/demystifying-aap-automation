@@ -56,12 +56,3 @@
           spec:
             replicas: 0
       no_log: true
-
-    - name: Making changes to prod on a friday
-      kubernetes.core.k8s:
-        api_version: v1
-        kind: Service
-        name: "{{ aap_cr_name }}-postgres-15"
-        namespace: "{{ namespace }}"
-        state: absent
-      no_log: true
