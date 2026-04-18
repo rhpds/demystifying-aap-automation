@@ -44,6 +44,10 @@ spec:
       name: chatbot-configuration-secret
       jsonPointers:
         - /data
+    - group: aap.ansible.com
+      kind: AnsibleAutomationPlatform
+      jsonPointers:
+        - /spec
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions:
