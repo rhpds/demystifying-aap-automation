@@ -21,7 +21,7 @@ aap:
     enabled: false                                          # override to true in AgV for scenarios that need Hub
     fileStorageSize: 10Gi
     fileStorageAccessMode: ReadWriteMany
-    fileStorageClass: ocs-external-storagecluster-cephfs   # CephFS required for RWX
+    fileStorageClass: ocs-storagecluster-cephfs   # CephFS required for RWX (internal ODF on AWS)
 alia:
   token: ""            # litellm_master_key, injected from AgV (scenario 6 only)
   model: granite-3-2-8b-instruct
