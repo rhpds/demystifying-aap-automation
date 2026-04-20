@@ -110,16 +110,16 @@
             allow_simultaneous: true
             state: present
           loop:
-            - { name: RH1-T1, suffix: 1 }
-            - { name: RH1-T2, suffix: 2 }
-            - { name: RH1-T3, suffix: 3 }
+            - { name: SUMMIT-T1, suffix: 1 }
+            - { name: SUMMIT-T2, suffix: 2 }
+            - { name: SUMMIT-T3, suffix: 3 }
 
         - name: Consult the Magic 8-Ball API
           ansible.controller.job_template:
             controller_host: "{{ controller_host }}"
             controller_oauthtoken: "{{ aap_oauth2_token }}"
             validate_certs: false
-            name: RH1-T4
+            name: SUMMIT-T4
             description: Job Template for Summit Troubleshooting Lab 4
             organization: Default
             project: Summit Troubleshooting Demo
@@ -130,9 +130,9 @@
             allow_simultaneous: true
             state: present
 
-        - name: Log in to AAP, run RH1-T1 through RH1-T4 Job Templates
+        - name: Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates
           ansible.builtin.debug:
             msg: |-
-              Log in to AAP, run RH1-T1 through RH1-T4 Job Templates.
+              Log in to AAP, run SUMMIT-T1 through SUMMIT-T4 Job Templates.
               Find out whats failing.
           no_log: false
