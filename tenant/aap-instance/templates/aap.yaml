@@ -67,8 +67,53 @@ spec:
   lightspeed:
     disabled: true
 
+{{- else if eq (int .Values.tenant.scenario) 5 }}
+  # Scenario 5: Controller + Hub. Hub pre-deployed with 25Mi storage — that is the intentional break.
+  # Students must diagnose why Hub sync fails (undersized PVC) and fix the storage size.
+  # Community remote with large collections is added by the break job to trigger the sync failure.
+  controller:
+    disabled: false
+    resource_requirements:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+  eda:
+    disabled: true
+  hub:
+    disabled: false
+    file_storage_size: 25Mi
+    file_storage_access_mode: {{ .Values.aap.hub.fileStorageAccessMode }}
+    file_storage_storage_class: {{ .Values.aap.hub.fileStorageClass }}
+    api:
+      resource_requirements:
+        requests:
+          cpu: 400m
+          memory: 500Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    content:
+      resource_requirements:
+        requests:
+          cpu: 100m
+          memory: 200Mi
+        limits:
+          cpu: 500m
+          memory: 800Mi
+    worker:
+      resource_requirements:
+        requests:
+          cpu: 400m
+          memory: 500Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+
 {{- else }}
-  # Scenarios 2-6: Controller + Hub. Identical base spec — clean AAP deployed.
+  # Scenarios 2-4: Controller + Hub. Identical base spec — clean AAP deployed.
   # The break is applied by the student via AAP job templates pre-loaded in their
   # Controller instance (converted from break.yml roles in rh1-aap-troubleshooting).
   controller:

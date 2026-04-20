@@ -2,8 +2,8 @@
 # Required extra vars:
 #   namespace    — user's scenario namespace (e.g. user-abc12-scenario-5)
 #   aap_cr_name  — AAP CR name (e.g. user-abc12-aap)
-#   hub_url      — AAP gateway URL (e.g. https://user-abc12-aap-user-abc12-scenario-5.apps.cluster)
-#   hub_password — AAP admin password
+# Scenario 5 deploys with file_storage_size: 25Mi pre-baked in the AAP CR.
+# This break job only adds large community collections to trigger a sync failure.
 - name: Break Scenario 5
   hosts: localhost
   gather_facts: false
@@ -11,51 +11,6 @@
     - name: Adjusting some stuff....
       no_log: true
       block:
-        - name: Configure this bit
-          kubernetes.core.k8s:
-            state: patched
-            definition:
-              apiVersion: aap.ansible.com/v1alpha1
-              kind: AnsibleAutomationPlatform
-              metadata:
-                name: "{{ aap_cr_name }}"
-                namespace: "{{ namespace }}"
-              spec:
-                hub:
-                  file_storage_size: 25Mi
-                  content:
-                    resource_requirements:
-                      limits:
-                        cpu: 500m
-                        memory: 800Mi
-                      requests:
-                        cpu: 100m
-                        memory: 200Mi
-                  api:
-                    resource_requirements:
-                      limits:
-                        cpu: 1000m
-                        memory: 1Gi
-                      requests:
-                        cpu: 400m
-                        memory: 500Mi
-                  worker:
-                    resource_requirements:
-                      limits:
-                        cpu: 1000m
-                        memory: 1Gi
-                      requests:
-                        cpu: 400m
-                        memory: 500Mi
-
-        - name: Collapsing the Wave Function
-          kubernetes.core.k8s:
-            state: absent
-            api_version: v1
-            kind: PersistentVolumeClaim
-            name: "{{ aap_cr_name }}-hub-file-storage"
-            namespace: "{{ namespace }}"
-
         - name: Tweak the Enterprise Funnel Flow
           kubernetes.core.k8s_info:
             api_version: v1
@@ -76,11 +31,6 @@
         - name: Deploying the Batarang
           ansible.builtin.set_fact:
             hub_admin_password: "{{ adminpw_string_raw | regex_replace('[^a-zA-Z0-9\\-]', '') | trim }}"
-
-        - name: Setting the GOTO Statement
-          ansible.builtin.debug:
-            msg: "All systems nominal."
-          no_log: false
 
         - name: Clearing the Cache of Infinite Jest
           kubernetes.core.k8s_info:
