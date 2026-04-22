@@ -17,7 +17,7 @@ aap:
     enabled: false
     fileStorageSize: 10Gi
     fileStorageAccessMode: ReadWriteMany
-    fileStorageClass: ocs-external-storagecluster-cephfs
+    fileStorageClass: ocs-storagecluster-cephfs
 alia:
   token: ""           # litellm_master_key, injected from AgV (scenario 6 only)
   model: granite-3-2-8b-instruct
