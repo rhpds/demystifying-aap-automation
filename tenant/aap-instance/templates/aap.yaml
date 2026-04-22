@@ -40,8 +40,9 @@ spec:
     force_drop_db: false
 
 {{- else if eq (int .Values.tenant.scenario) 6 }}
-  # Scenario 7: Controller + EDA, no Hub. Lightspeed disabled — that is the intentional break.
-  # Students must diagnose why the ALIA chat icon is missing and fix the LLM connection.
+  # Scenario 6: Controller + EDA, no Hub. Lightspeed enabled with correct model by default.
+  # The break job changes the model to wrong value. Students diagnose and restore correct model.
+  # FTL: fresh validate passes (lightspeed enabled, correct model) → break → validate fails → fix → validate passes
   controller:
     disabled: false
     resource_requirements:
@@ -65,7 +66,7 @@ spec:
   hub:
     disabled: true
   lightspeed:
-    disabled: true
+    disabled: false
 
 {{- else if eq (int .Values.tenant.scenario) 5 }}
   # Scenario 5: Controller + Hub. Hub pre-deployed with 25Mi storage — that is the intentional break.
