@@ -8,6 +8,11 @@ tenant:
   domain: ""
   apiUrl: ""          # cluster API URL for break SA credential
   scenario: 1
+scenarios:            # all scenarios deployed per tenant order
+  - 1
+  - 2
+  - 3
+  - 6
 aap:
   operatorChannel: stable-2.6
   startingCSV: "aap-operator.v2.6.0-0.1772556720"
