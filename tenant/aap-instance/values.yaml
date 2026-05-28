@@ -23,6 +23,6 @@ aap:
     fileStorageAccessMode: ReadWriteMany
     fileStorageClass: ocs-storagecluster-cephfs   # CephFS required for RWX (internal ODF on AWS)
 alia:
-  token: ""            # litellm_master_key, injected from AgV (scenario 6 only)
+  token: ""
   model: granite-3-2-8b-instruct
   url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
